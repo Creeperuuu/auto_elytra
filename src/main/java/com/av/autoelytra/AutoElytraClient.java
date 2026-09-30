@@ -22,6 +22,7 @@ public class AutoElytraClient implements ClientModInitializer {
     );
 
     private boolean wasJumpDown;
+    private boolean jumpReleasedWhileGliding;
     private int jumpPressCooldown;
 
     @Override
@@ -33,30 +34,51 @@ public class AutoElytraClient implements ClientModInitializer {
         if (client.player == null || client.level == null) return;
         Player player = client.player;
 
-        if (jumpPressCooldown > 0) jumpPressCooldown--;
+        if (jumpPressCooldown > 0) {
+            jumpPressCooldown--;
+        }
 
         boolean jumpDown = client.options.keyJump.isDown();
         boolean jumpPressed = jumpDown && !wasJumpDown;
 
-        // A second Space press while already gliding swaps the Elytra
-        // for the best available chestplate and immediately stops gliding.
-        if (jumpPressed && player.isFallFlying()) {
-            swapElytraForChestplate(client, player);
-            wasJumpDown = jumpDown;
-            return;
+        /*
+         * When gliding begins, the Space press that started the flight must
+         * never also count as the "second Space press".
+         *
+         * We therefore require Space to be released while gliding before
+         * another Space press can swap the Elytra for a chestplate.
+         */
+        if (player.isFallFlying()) {
+            if (!jumpDown) {
+                jumpReleasedWhileGliding = true;
+            }
+
+            if (jumpPressed && jumpReleasedWhileGliding) {
+                swapElytraForChestplate(client, player);
+                jumpReleasedWhileGliding = false;
+                wasJumpDown = jumpDown;
+                return;
+            }
+        } else {
+            // Not gliding: the next time flight starts, require a release first.
+            jumpReleasedWhileGliding = false;
         }
 
         while (SWAP_KEY.consumeClick()) {
             swapChestAndElytra(client, player);
         }
 
-        // Preserve the automatic Elytra equip behavior when jumping/falling
-        // while wearing a chestplate, but never trigger it while gliding.
+        /*
+         * Automatically equip an Elytra when jumping/falling while wearing
+         * a chestplate. This can start Elytra flight, but the same Space
+         * press is blocked from immediately swapping it back.
+         */
         if (jumpPressed && !player.onGround() && !player.isFallFlying()
                 && jumpPressCooldown == 0
                 && isChestplate(player.getItemBySlot(EquipmentSlot.CHEST))) {
             equipBestElytra(client, player);
             jumpPressCooldown = 8;
+            jumpReleasedWhileGliding = false;
         }
 
         wasJumpDown = jumpDown;
@@ -78,33 +100,47 @@ public class AutoElytraClient implements ClientModInitializer {
 
     private void equipBestElytra(Minecraft client, Player player) {
         int slot = findInventorySlot(player, this::isElytra);
-        if (slot >= 0) swapInventorySlotWithChest(client, player, slot);
+        if (slot >= 0) {
+            swapInventorySlotWithChest(client, player, slot);
+        }
     }
 
     private void equipBestChestplate(Minecraft client, Player player) {
         int slot = findBestChestplateSlot(player);
-        if (slot >= 0) swapInventorySlotWithChest(client, player, slot);
+        if (slot >= 0) {
+            swapInventorySlotWithChest(client, player, slot);
+        }
     }
 
     private int findBestChestplateSlot(Player player) {
         int bestSlot = -1;
         int bestDefense = -1;
+
         for (int i = 0; i < 36; i++) {
             ItemStack stack = player.getInventory().getItem(i);
-            if (!isChestplate(stack)) continue;
+
+            if (!isChestplate(stack)) {
+                continue;
+            }
+
             int defense = chestplateDefense(stack);
+
             if (defense > bestDefense) {
                 bestDefense = defense;
                 bestSlot = i;
             }
         }
+
         return bestSlot;
     }
 
     private int findInventorySlot(Player player, java.util.function.Predicate<ItemStack> predicate) {
         for (int i = 0; i < 36; i++) {
-            if (predicate.test(player.getInventory().getItem(i))) return i;
+            if (predicate.test(player.getInventory().getItem(i))) {
+                return i;
+            }
         }
+
         return -1;
     }
 
@@ -113,7 +149,10 @@ public class AutoElytraClient implements ClientModInitializer {
     }
 
     private boolean isChestplate(ItemStack stack) {
-        if (stack.isEmpty() || isElytra(stack)) return false;
+        if (stack.isEmpty() || isElytra(stack)) {
+            return false;
+        }
+
         return chestplateDefense(stack) >= 0;
     }
 
@@ -124,21 +163,27 @@ public class AutoElytraClient implements ClientModInitializer {
         if (stack.is(Items.IRON_CHESTPLATE)) return 6;
         if (stack.is(Items.DIAMOND_CHESTPLATE)) return 8;
         if (stack.is(Items.NETHERITE_CHESTPLATE)) return 8;
+
         return -1;
     }
 
     private void swapInventorySlotWithChest(Minecraft client, Player player, int inventoryIndex) {
-        if (client.gameMode == null) return;
+        if (client.gameMode == null) {
+            return;
+        }
 
         int sourceMenuSlot = inventoryIndex < 9 ? 36 + inventoryIndex : inventoryIndex;
         int chestMenuSlot = 6;
         int syncId = player.containerMenu.containerId;
 
-        client.gameMode.handleContainerInput(syncId, sourceMenuSlot, 0,
-            ContainerInput.PICKUP, player);
-        client.gameMode.handleContainerInput(syncId, chestMenuSlot, 0,
-            ContainerInput.PICKUP, player);
-        client.gameMode.handleContainerInput(syncId, sourceMenuSlot, 0,
-            ContainerInput.PICKUP, player);
+        client.gameMode.handleContainerInput(
+            syncId, sourceMenuSlot, 0, ContainerInput.PICKUP, player
+        );
+        client.gameMode.handleContainerInput(
+            syncId, chestMenuSlot, 0, ContainerInput.PICKUP, player
+        );
+        client.gameMode.handleContainerInput(
+            syncId, sourceMenuSlot, 0, ContainerInput.PICKUP, player
+        );
     }
 }
