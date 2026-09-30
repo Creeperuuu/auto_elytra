@@ -6,6 +6,7 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.protocol.game.ServerboundPlayerCommandPacket;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
@@ -42,11 +43,8 @@ public class AutoElytraClient implements ClientModInitializer {
         boolean jumpPressed = jumpDown && !wasJumpDown;
 
         /*
-         * When gliding begins, the Space press that started the flight must
-         * never also count as the "second Space press".
-         *
-         * We therefore require Space to be released while gliding before
-         * another Space press can swap the Elytra for a chestplate.
+         * A second Space press while already gliding swaps the Elytra
+         * for the best available chestplate.
          */
         if (player.isFallFlying()) {
             if (!jumpDown) {
@@ -55,12 +53,12 @@ public class AutoElytraClient implements ClientModInitializer {
 
             if (jumpPressed && jumpReleasedWhileGliding) {
                 swapElytraForChestplate(client, player);
+                player.stopFallFlying();
                 jumpReleasedWhileGliding = false;
                 wasJumpDown = jumpDown;
                 return;
             }
         } else {
-            // Not gliding: the next time flight starts, require a release first.
             jumpReleasedWhileGliding = false;
         }
 
@@ -69,16 +67,21 @@ public class AutoElytraClient implements ClientModInitializer {
         }
 
         /*
-         * Automatically equip an Elytra when jumping/falling while wearing
-         * a chestplate. This can start Elytra flight, but the same Space
-         * press is blocked from immediately swapping it back.
+         * While falling in a chestplate, Space equips the Elytra and
+         * immediately starts Elytra flight. The START_FALL_FLYING packet
+         * makes the action work on multiplayer servers as well.
          */
-        if (jumpPressed && !player.onGround() && !player.isFallFlying()
+        if (jumpPressed
+                && !player.onGround()
+                && !player.isFallFlying()
                 && jumpPressCooldown == 0
                 && isChestplate(player.getItemBySlot(EquipmentSlot.CHEST))) {
-            equipBestElytra(client, player);
-            jumpPressCooldown = 8;
-            jumpReleasedWhileGliding = false;
+
+            if (equipBestElytra(client, player)) {
+                startFallFlying(client, player);
+                jumpPressCooldown = 8;
+                jumpReleasedWhileGliding = false;
+            }
         }
 
         wasJumpDown = jumpDown;
@@ -98,10 +101,26 @@ public class AutoElytraClient implements ClientModInitializer {
         }
     }
 
-    private void equipBestElytra(Minecraft client, Player player) {
+    private boolean equipBestElytra(Minecraft client, Player player) {
         int slot = findInventorySlot(player, this::isElytra);
-        if (slot >= 0) {
-            swapInventorySlotWithChest(client, player, slot);
+        if (slot < 0) {
+            return false;
+        }
+
+        swapInventorySlotWithChest(client, player, slot);
+        return true;
+    }
+
+    private void startFallFlying(Minecraft client, Player player) {
+        player.startFallFlying();
+
+        if (client.getConnection() != null) {
+            client.getConnection().send(
+                new ServerboundPlayerCommandPacket(
+                    player,
+                    ServerboundPlayerCommandPacket.Action.START_FALL_FLYING
+                )
+            );
         }
     }
 
