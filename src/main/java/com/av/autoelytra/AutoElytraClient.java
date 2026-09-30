@@ -9,11 +9,11 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.util.ClickType;
 
-public class AutoElytraClient implements ClientModInitializer {
+public class AutoElytraClient {
     private static final String MOD_ID = "autoelytra";
     private static final KeyMapping.Category KEY_CATEGORY =
         KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "controls"));
@@ -125,15 +125,16 @@ public class AutoElytraClient implements ClientModInitializer {
 
     private void swapInventorySlotWithChest(Minecraft client, Player player, int inventoryIndex) {
         if (client.gameMode == null) return;
+
         int sourceMenuSlot = inventoryIndex < 9 ? 36 + inventoryIndex : inventoryIndex;
         int chestMenuSlot = 6;
         int syncId = player.containerMenu.containerId;
 
-        client.gameMode.handleInventoryMouseClick(syncId, sourceMenuSlot, 0,
-            ClickType.PICKUP, player);
-        client.gameMode.handleInventoryMouseClick(syncId, chestMenuSlot, 0,
-            net.minecraft.world.inventory.ClickType.PICKUP, player);
-        client.gameMode.handleInventoryMouseClick(syncId, sourceMenuSlot, 0,
-            net.minecraft.world.inventory.ClickType.PICKUP, player);
+        client.gameMode.handleContainerInput(syncId, sourceMenuSlot, 0,
+            ContainerInput.PICKUP, player);
+        client.gameMode.handleContainerInput(syncId, chestMenuSlot, 0,
+            ContainerInput.PICKUP, player);
+        client.gameMode.handleContainerInput(syncId, sourceMenuSlot, 0,
+            ContainerInput.PICKUP, player);
     }
 }
