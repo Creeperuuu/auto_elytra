@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "autoelytra",
+  "version": "1.5.0-26.2",
+  "name": "Auto Elytra",
+  "description": "Automatically swaps between Elytra and chestplate.",
+  "authors": [
+    "Creeperuuu",
+    "OpenAI"
+  ],
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.av.autoelytra.AutoElytraClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.0",
+    "minecraft": "~26.2",
+    "fabric-api": "*"
+  }
+}
