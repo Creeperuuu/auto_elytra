@@ -13,7 +13,7 @@ import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
-public class AutoElytraClient {
+public class AutoElytraClient implements ClientModInitializer {
     private static final String MOD_ID = "autoelytra";
     private static final KeyMapping.Category KEY_CATEGORY =
         KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "controls"));
