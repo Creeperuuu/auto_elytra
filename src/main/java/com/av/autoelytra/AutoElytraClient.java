@@ -9,9 +9,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.util.ClickType;
 
 public class AutoElytraClient implements ClientModInitializer {
     private static final String MOD_ID = "autoelytra";
@@ -88,7 +88,7 @@ public class AutoElytraClient implements ClientModInitializer {
         for (int i = 0; i < 36; i++) {
             ItemStack stack = player.getInventory().getItem(i);
             if (!isChestplate(stack)) continue;
-            int defense = stack.getItem() instanceof ArmorItem armor ? armor.getDefense() : 0;
+            int defense = chestplateDefense(stack);
             if (defense > bestDefense) {
                 bestDefense = defense;
                 bestSlot = i;
@@ -110,8 +110,17 @@ public class AutoElytraClient implements ClientModInitializer {
 
     private boolean isChestplate(ItemStack stack) {
         if (stack.isEmpty() || isElytra(stack)) return false;
-        return stack.getItem() instanceof ArmorItem armor
-            && armor.getEquipmentSlot() == EquipmentSlot.CHEST;
+        return chestplateDefense(stack) >= 0;
+    }
+
+    private int chestplateDefense(ItemStack stack) {
+        if (stack.is(Items.LEATHER_CHESTPLATE)) return 3;
+        if (stack.is(Items.GOLDEN_CHESTPLATE)) return 5;
+        if (stack.is(Items.CHAINMAIL_CHESTPLATE)) return 6;
+        if (stack.is(Items.IRON_CHESTPLATE)) return 6;
+        if (stack.is(Items.DIAMOND_CHESTPLATE)) return 8;
+        if (stack.is(Items.NETHERITE_CHESTPLATE)) return 8;
+        return -1;
     }
 
     private void swapInventorySlotWithChest(Minecraft client, Player player, int inventoryIndex) {
@@ -121,7 +130,7 @@ public class AutoElytraClient implements ClientModInitializer {
         int syncId = player.containerMenu.containerId;
 
         client.gameMode.handleInventoryMouseClick(syncId, sourceMenuSlot, 0,
-            net.minecraft.world.inventory.ClickType.PICKUP, player);
+            ClickType.PICKUP, player);
         client.gameMode.handleInventoryMouseClick(syncId, chestMenuSlot, 0,
             net.minecraft.world.inventory.ClickType.PICKUP, player);
         client.gameMode.handleInventoryMouseClick(syncId, sourceMenuSlot, 0,
