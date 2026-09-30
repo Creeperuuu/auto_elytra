@@ -1,25 +1,19 @@
 {
-	"schemaVersion": 1,
-	"id": "autoelytra",
-	"version": "1.4.3-26.3",
-	"name": "Auto Elytra",
-	"description": "Automatically swaps between an elytra and the best available chestplate.",
-	"authors": [
-		"Anti-Vison"
-	],
-	"contact": {},
-	"license": "MIT",
-	"icon": "assets/autoelytra/icon.png",
-	"environment": "client",
-	"entrypoints": {
-		"client": [
-			"com.av.autoelytra.AutoElytraClient"
-		]
-	},
-	"depends": {
-		"fabricloader": ">=0.19.3",
-		"minecraft": ">=26.3 <26.4",
-		"java": ">=25",
-		"fabric-api": "*"
-	}
+    "schemaVersion": 1,
+    "id": "autoelytra",
+    "version": "${version}",
+    "name": "Auto Elytra",
+    "description": "Automatically swaps between an elytra and the best available chestplate.",
+    "authors": ["Anti-Vison"],
+    "contact": {"sources": "https://github.com/Creeperuuu/auto_elytra"},
+    "license": "MIT",
+    "icon": "assets/autoelytra/icon.png",
+    "environment": "client",
+    "entrypoints": {"client": ["com.av.autoelytra.AutoElytraClient"]},
+    "depends": {
+        "fabricloader": ">=0.19.5",
+        "minecraft": "~26.2",
+        "java": ">=25",
+        "fabric-api": "*"
+    }
 }
