@@ -1,0 +1,25 @@
+name: build
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: checkout
+        uses: actions/checkout@v6
+      - name: setup Java 25
+        uses: actions/setup-java@v5
+        with:
+          java-version: '25'
+          distribution: 'microsoft'
+      - name: setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '9.7.1'
+      - name: build
+        run: gradle build
+      - name: upload mod jar
+        uses: actions/upload-artifact@v7
+        with:
+          name: auto-elytra-26.2
+          path: build/libs/*.jar
