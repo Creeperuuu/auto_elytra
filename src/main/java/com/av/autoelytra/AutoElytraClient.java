@@ -35,9 +35,14 @@ public class AutoElytraClient implements ClientModInitializer {
 
         if (jumpPressCooldown > 0) jumpPressCooldown--;
 
-        if (player.isFallFlying() && client.options.keyJump.isDown()) {
+        boolean jumpDown = client.options.keyJump.isDown();
+        boolean jumpPressed = jumpDown && !wasJumpDown;
+
+        // A second Space press while already gliding swaps the Elytra
+        // for the best available chestplate and immediately stops gliding.
+        if (jumpPressed && player.isFallFlying()) {
             swapElytraForChestplate(client, player);
-            wasJumpDown = true;
+            wasJumpDown = jumpDown;
             return;
         }
 
@@ -45,9 +50,8 @@ public class AutoElytraClient implements ClientModInitializer {
             swapChestAndElytra(client, player);
         }
 
-        boolean jumpDown = client.options.keyJump.isDown();
-        boolean jumpPressed = jumpDown && !wasJumpDown;
-
+        // Preserve the automatic Elytra equip behavior when jumping/falling
+        // while wearing a chestplate, but never trigger it while gliding.
         if (jumpPressed && !player.onGround() && !player.isFallFlying()
                 && jumpPressCooldown == 0
                 && isChestplate(player.getItemBySlot(EquipmentSlot.CHEST))) {
